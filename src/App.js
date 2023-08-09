@@ -44,6 +44,53 @@ const theme = createTheme({
 
 function App() {
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+  } = useForm();
+
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    fee: '',
+    course: 'Fundamentals of JavaScript',
+    batch: ''
+  });
+
+  const [batchRows, setBatchRows] = useState([
+    {
+      id: 1,
+      value: 'August',
+    },
+  ]);
+
+  const onSubmit = (data) => {
+    setIsSubmitted(true);
+    setFormData(data);
+  }
+
+  const resetForm = () => {
+    setIsSubmitted(false);
+    setFormData({
+      email: '',
+      fee: '',
+      course: 'Fundamentals of JavaScript',
+      batch: '',
+    });
+    setBatchRows([
+      {
+        id: 1,
+        value: 'August',
+      }
+    ]);
+    setValue('email', '');
+    setValue('fee', '');
+    setValue('course', 'Fundamentals of JavaScript');
+    setValue('batch', '');
+  }
+
   const CustomButton = styled(Button)(({theme}) => ({
     background: '#2181ff',
     padding: '0.8rem 2rem',
@@ -66,13 +113,51 @@ function App() {
     isOpen(false);
   }
 
+  const handleBatchChange = (id) => (event) => {
+    const newValue = event.target.value;
+    setBatchRows((prevRows) =>
+      prevRows.map((row) => (row.id === id ? { ...row, value: newValue } : row))
+    );
+  };
+
+  const addBatchRow = () => {
+    if (batchRows.length < 3) {
+      const newId = batchRows.length + 1;
+      setBatchRows((prevRows) => [
+        ...prevRows,
+        {id: newId, value: 'August'}
+      ]);
+    }
+  };
+
+  const removeBatchRow = (id) => () => {
+    if (batchRows.length > 1) {
+      setBatchRows((prevRows) => prevRows.filter((row) => row.id !== id));
+    }
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <div className="App">
-        <CustomButton onClick={openModal} variant='contained' disableElevation sx={{borderRadius: "1.875rem"}}>Click Me</CustomButton>
 
-        <Dialog open={open} onClose={closeModal} fullWidth>
-          <IconButton sx={{color: 'black', position: 'absolute', right: '1rem', top: '1rem'}} onClick={closeModal}><Close/></IconButton>
+        <CustomButton 
+          onClick={openModal} 
+          variant='contained' 
+          disableElevation 
+          sx={{borderRadius: "1.875rem"}}
+        >
+          Click Me
+        </CustomButton>
+
+        <Dialog open={open} onClose={closeModal} fullWidth component="form">
+
+          <IconButton 
+            sx={{color: 'black', position: 'absolute', right: '1rem', top: '1rem'}} 
+            onClick={closeModal}
+          >
+            <Close/>
+          </IconButton>
+
           <Box sx={{padding: '1rem 1.5rem'}}>
             <Box sx={{display: 'flex', justifyContent: 'center', flexDirection: 'column', textAlign: 'center'}}>
               <DialogTitle color='text.primary' fontWeight='bold'>Enroll Student</DialogTitle>
@@ -80,6 +165,7 @@ function App() {
             </Box>
 
             <DialogContent sx={{'&::before': {content: '""', display: 'block', borderBottom: '1px solid #ebebeb', marginBottom: '1.5rem'}}}>
+
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <TextField
@@ -88,15 +174,33 @@ function App() {
                     id='email'
                     label='Email'
                     type='email'
+                    {...register('email', {
+                      required: true,
+                      pattern: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i,
+                    })}
                   />
+                  {errors.email && (
+                    <p>
+                      {errors.email.type === 'required' && 'This field is required'}
+                      {errors.email.type === 'pattern' && 'Invalid email address'}
+                    </p>
+                  )}
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
                     autofocus
                     id='fee'
                     label='Fee (Optional)'
-                    type='number'
+                    type='text'
+                    {...register('fee', {
+                      pattern: (/^[0-9]+$/),
+                    })}
                   />
+                  {errors.fee && (
+                    <p>
+                      {errors.fee.type === 'pattern' && 'Please only use numbers'}
+                    </p>
+                  )}
                 </Grid>
                 <Grid item xs={11}>
                   <InputLabel id='course-label'>Course</InputLabel>
@@ -104,42 +208,80 @@ function App() {
                     labelId='course-label'
                     id='course'
                     label="Course"
-                    value={1}
+                    {...register('course')}
+                    value={'Fundamentals of JavaScript'}
                     fullWidth
                     defaultValue='Fundamentals of JavaScript'
                   >
-                    <MenuItem value={1}>Fundamentals of JavaScript</MenuItem>
+                    <MenuItem value={'Fundamentals of JavaScript'}>Fundamentals of JavaScript</MenuItem>
                   </Select>
                 </Grid>
-                {/* The following has no functionality as I believe this is just limited to testing my UI expertise */}
-                <Grid item xs={11}>
-                  <InputLabel id='batch-label'>Batch</InputLabel>
+                {batchRows.map((row) => (
+                <Grid item xs={11} key={row.id}>
+                  <InputLabel id={`batch-label-${row.id}`}>Batch</InputLabel>
                   <Select
-                    labelId='batch-label'
-                    id='batch'
+                    labelId={`batch-label-${row.id}`}
+                    id={`batch-${row.id}`}
                     label="Batch"
-                    value={2}
+                    value={row.value}
+                    {...register('batch')}
+                    onChange={handleBatchChange(row.id)}
                     fullWidth
-                    defaultValue='August'
                   >
-                    <MenuItem value={2}>August</MenuItem>
+                    <MenuItem value="August">August</MenuItem>
+                    <MenuItem value="September">September</MenuItem>
+                    <MenuItem value="October">October</MenuItem>
                   </Select>
-                  <Button variant='text' startIcon={<AddIcon/>} sx={{marginTop: '1rem', color: 'black'}}>Add</Button>
+                  {batchRows.length > 1 && (
+                    <IconButton
+                      sx={{ color: 'black', position: 'absolute', right: '2rem', marginTop: '0.4rem' }}
+                      onClick={removeBatchRow(row.id)}
+                    >
+                      <Close />
+                    </IconButton>
+                  )}
                 </Grid>
-                <Grid item xs={1}>
-                  <IconButton sx={{color: 'black', marginTop: '1.75rem'}}><Close/></IconButton>
+              ))}
+              {batchRows.length < 3 && (
+                <Grid item xs={12}>
+                  <Button variant='text' startIcon={<AddIcon/>} sx={{color: 'black'}} onClick={addBatchRow}>Add</Button>
                 </Grid>
+              )}
               </Grid>
+
             </DialogContent>
+
             <DialogContent sx={{'&::before': {content: '""', display: 'block', borderBottom: '1px solid #ebebeb', marginBottom: '1.5rem'}}}>
               <Box sx={{display: 'flex', justifyContent: 'space-between'}}>
                 <Button variant='text' startIcon={<ContentCopyIcon/>} sx={{color: 'black', textTransform: 'capitalize'}}>Copy Invited Link</Button>
                 <Box>
-                  <InvertedButton sx={{marginRight: '1rem', fontWeight: 'bold'}}>取消</InvertedButton>
-                  <CustomButton variant='contained' disableElevation sx={{fontWeight: 'bold'}}>送出</CustomButton>
+                  <InvertedButton sx={{marginRight: '1rem', fontWeight: 'bold'}} onClick={resetForm}>取消</InvertedButton>
+                  <CustomButton variant='contained' disableElevation sx={{fontWeight: 'bold'}} onClick={handleSubmit(onSubmit)}>送出</CustomButton>
                 </Box>
               </Box>
             </DialogContent>
+
+            {isSubmitted && (
+              <Box sx={{ marginTop: '1rem', textAlign: 'center'}}>
+                <span style={{color: 'green'}}>Form submitted successfully!</span><br/>
+                <span style={{fontWeight: 'bold'}}>Email:</span> {formData.email}<br/>
+                <span style={{fontWeight: 'bold'}}>Fee:</span> {formData.fee}<br/>
+                <span style={{fontWeight: 'bold'}}>Course:</span> {formData.course}<br/>
+                <span style={{fontWeight: 'bold'}}>Batch:</span> {batchRows.map((row, index) => (
+                  <span key={row.id}>
+                    {row.value}
+                    {index !== batchRows.length - 1 && ', '}
+                  </span>
+                ))}
+              </Box>
+            )}
+
+            {Object.keys(errors).length > 0 && (
+              <Box sx={{ color: 'red', marginTop: '1rem', textAlign: 'center'}}>
+                Your form has some error(s).
+              </Box>
+            )}
+
           </Box>
         </Dialog>
         
